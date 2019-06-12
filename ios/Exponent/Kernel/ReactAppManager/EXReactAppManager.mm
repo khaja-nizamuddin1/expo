@@ -17,7 +17,10 @@
 #import <UMCore/UMModuleRegistryProvider.h>
 
 #import <React/RCTBridge.h>
+#import <React/RCTCxxBridgeDelegate.h>
+#import <React/JSCExecutorFactory.h>
 #import <React/RCTRootView.h>
+#import <ReactCommon/RCTTurboModuleManager.h>
 
 @interface EXVersionManager (Legacy)
 // TODO: remove after non-unimodules SDK versions are dropped
@@ -53,12 +56,13 @@ typedef void (^SDK21RCTSourceLoadBlock)(NSError *error, NSData *source, int64_t 
 
 @end
 
-@interface EXReactAppManager () <RCTBridgeDelegate>
+@interface EXReactAppManager () <RCTBridgeDelegate, RCTCxxBridgeDelegate>
 
 @property (nonatomic, strong) UIView * __nullable reactRootView;
 @property (nonatomic, copy) RCTSourceLoadBlock loadCallback;
 @property (nonatomic, strong) NSDictionary *initialProps;
 @property (nonatomic, strong) NSTimer *viewTestTimer;
+@property (nonatomic, strong) RCTTurboModuleManager *turboModuleManager;
 
 @end
 
@@ -432,8 +436,8 @@ typedef void (^SDK21RCTSourceLoadBlock)(NSError *error, NSData *source, int64_t 
   } else {
     loadingManagerClass = [self versionedClassFromString:@"EXSplashScreen"];
   }
-  for (Class class in [self.reactBridge moduleClasses]) {
-    if ([class isSubclassOfClass:loadingManagerClass]) {
+  for (Class klass in [self.reactBridge moduleClasses]) {
+    if ([klass isSubclassOfClass:loadingManagerClass]) {
       return [self.reactBridge moduleForClass:loadingManagerClass];
     }
   }
@@ -647,6 +651,23 @@ typedef void (^SDK21RCTSourceLoadBlock)(NSError *error, NSData *source, int64_t 
   NSString *mainCachesDirectory = NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES).firstObject;
   NSString *exponentCachesDirectory = [mainCachesDirectory stringByAppendingPathComponent:@"ExponentExperienceData"];
   return [[exponentCachesDirectory stringByAppendingPathComponent:escapedExperienceId] stringByStandardizingPath];
+}
+
+- (std::unique_ptr<facebook::react::JSExecutorFactory>)jsExecutorFactoryForBridge:(RCTBridge *)bridge
+{
+  __weak __typeof(self) weakSelf = self;
+  return std::make_unique<facebook::react::JSCExecutorFactory>([weakSelf, bridge](facebook::jsi::Runtime &runtime) {
+    if (!bridge) {
+      return;
+    }
+    __typeof(self) strongSelf = weakSelf;
+    if (strongSelf) {
+      strongSelf->_turboModuleManager = [[RCTTurboModuleManager alloc] initWithBridge:bridge
+                                                                             delegate:strongSelf.versionManager
+                                                                            jsInvoker:bridge.jsCallInvoker];
+      [strongSelf->_turboModuleManager installJSBindingWithRuntime:&runtime];
+    }
+  });
 }
 
 @end
