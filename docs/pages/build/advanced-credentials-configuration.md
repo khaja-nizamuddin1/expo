@@ -2,7 +2,7 @@
 title: Advanced Credentials Configuration
 ---
 
-In order to build a React Native project for distribution on App Stores you need the app's credentials. EAS Builds makes managing credentials really easy. When running `expo eas:build`, you're guided through the entire credentials management process. Expo CLI will generate both Android and iOS credentials for you, and store them on the Expo servers. This makes it possible to use them for further builds and also speeds up building the project for other team members.
+In order to build a React Native project for distribution on App Stores you need the app's credentials. EAS Builds makes managing credentials really easy. When running `expo eas:build`, you're guided through the entire credentials management process. Expo CLI will generate both Android and iOS credentials for you, and store them on the Expo servers. This makes it possible to use them for consecutive builds and also speeds up building the project for other team members.
 
 Usually, you can get away with not being an expert on credentials and choose Expo to manage them on their servers. However, there are some cases when you want to manage your keystore, certificates and profiles on your own. The most obvious example is when you want to build your app on a CI so you want to have the full control over which credentials will be used for your builds. The other example would be when you already have your credentials generated but you used to build your app on your own. We've introduced a concept of the `credentials.json` file to solve these and similar cases. **Using `credentials.json` is totally optional.**
 
